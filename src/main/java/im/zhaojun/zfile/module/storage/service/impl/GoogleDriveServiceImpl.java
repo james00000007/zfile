@@ -1,22 +1,19 @@
 package im.zhaojun.zfile.module.storage.service.impl;
 
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.net.url.UrlQuery;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.ReflectUtil;
-import cn.hutool.http.HttpRequest;
-import cn.hutool.http.HttpResponse;
-import cn.hutool.http.HttpUtil;
-import cn.hutool.http.Method;
+import cn.hutool.http.*;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import im.zhaojun.zfile.core.exception.ErrorCode;
 import im.zhaojun.zfile.core.exception.core.BizException;
 import im.zhaojun.zfile.core.exception.core.SystemException;
-import im.zhaojun.zfile.core.util.CollectionUtils;
 import im.zhaojun.zfile.core.util.FileUtils;
 import im.zhaojun.zfile.core.util.RequestHolder;
 import im.zhaojun.zfile.core.util.StringUtils;
@@ -58,11 +55,13 @@ import org.springframework.stereotype.Service;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author zhaojun
@@ -314,19 +313,18 @@ public class GoogleDriveServiceImpl extends AbstractProxyTransferService<GoogleD
 		HttpResponse httpResponse = httpRequest.executeAsync();
 		checkHttpResponseIsError(httpResponse);
 
+		String contentLengthHeader = httpResponse.header(Header.CONTENT_LENGTH.getValue());
+		Long contentLength = StringUtils.isEmpty(contentLengthHeader) ? null : Convert.toLong(contentLengthHeader, null);
+		boolean partialContentFromInputStream = httpResponse.getStatus() == HttpStatus.PARTIAL_CONTENT.value();
+		HttpServletResponse response = RequestHolder.getResponse();
+		String contentEncoding = httpResponse.header(Header.CONTENT_ENCODING.getValue());
+		if (StringUtils.isNotEmpty(contentEncoding)) {
+			response.setHeader(org.springframework.http.HttpHeaders.CONTENT_ENCODING, contentEncoding);
+		}
 
-		try {
-			HttpServletResponse response = RequestHolder.getResponse();
-			response.setStatus(httpResponse.getStatus());
-			for (Map.Entry<String, List<String>> stringListEntry : httpResponse.headers().entrySet()) {
-				String key = stringListEntry.getKey();
-				List<String> values = stringListEntry.getValue();
-				if (key != null && CollectionUtils.isNotEmpty(values)) {
-					response.setHeader(key, stringListEntry.getValue().get(0));
-				}
-			}
-			OutputStream outputStream = response.getOutputStream();
-			httpResponse.writeBody(outputStream, true, null);
+		try (InputStream inputStream = httpResponse.bodyStream()) {
+			String fileName = FileUtils.getName(pathAndName);
+			RequestHolder.writeFile(inputStream, fileName, contentLength, partialContentFromInputStream, param.isProxyLinkForceDownload());
 		} catch (IOException e) {
 			throw ExceptionUtil.wrapRuntime(e);
 		}
