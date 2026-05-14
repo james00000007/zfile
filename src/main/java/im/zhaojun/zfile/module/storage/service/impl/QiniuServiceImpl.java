@@ -50,6 +50,7 @@ public class QiniuServiceImpl extends AbstractS3BaseFileService<QiniuParam> {
 
         super.s3ClientNew = S3Client.builder()
                 .overrideConfiguration(getClientConfiguration())
+                .serviceConfiguration(getS3Configuration())
                 .region(oss)
                 .endpointOverride(endpointOverride)
                 .credentialsProvider(credentialsProvider)

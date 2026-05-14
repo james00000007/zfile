@@ -40,6 +40,7 @@ public class MinIOServiceImpl extends AbstractS3BaseFileService<MinIOParam> {
         StaticCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(AwsBasicCredentials.create(param.getAccessKey(), param.getSecretKey()));
 
         super.s3ClientNew = S3Client.builder()
+                .serviceConfiguration(getS3Configuration())
                 .forcePathStyle(true)
                 .overrideConfiguration(getClientConfiguration())
                 .region(oss)

@@ -53,6 +53,7 @@ public class S3ServiceImpl extends AbstractS3BaseFileService<S3Param> {
 
         super.s3ClientNew = S3Client.builder()
                 .overrideConfiguration(getClientConfiguration())
+                .serviceConfiguration(getS3Configuration())
                 .forcePathStyle(isPathStyle)
                 .region(oss)
                 .endpointOverride(endpointOverride)

@@ -46,6 +46,10 @@ public class S3BaseParam extends OptionalProxyTransferParam {
 	@StorageParamItem(name = "下载签名有效期", order = 80, condition = "isPrivate==true", required = false, defaultValue = "1800", description = "当为私有空间时, 用于下载签名的有效期, 单位为秒, 如不配置则默认为 1800 秒.")
 	private Integer tokenTime;
 
+	@StorageParamItem(name = "启用 aws-chunked 分块编码", order = 190, type = StorageParamTypeEnum.SWITCH, required = false, defaultValue = "true",
+			description = "AWS SDK 上传文件时默认启用 aws-chunked 分块编码, 但部分 S3 兼容存储不支持, 会导致代理上传时报错, 此时可关闭该开关以提升兼容性.")
+	private boolean chunkedEncodingEnabled;
+
 	@StorageParamItem(name = "跨域配置", order = 200, defaultValue = "[]")
 	private String corsConfigList;
 

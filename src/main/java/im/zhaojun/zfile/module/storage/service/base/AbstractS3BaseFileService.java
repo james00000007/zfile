@@ -26,6 +26,7 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.paginators.ListObjectsV2Iterable;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -355,6 +356,16 @@ public abstract class AbstractS3BaseFileService<P extends S3BaseParam> extends A
     public ClientOverrideConfiguration getClientConfiguration() {
         return ClientOverrideConfiguration.builder()
                 .apiCallTimeout(Duration.ofSeconds(StorageSourceConnectionProperties.DEFAULT_CONNECTION_TIMEOUT_SECONDS)) // 设置 API 调用超时时间
+                .build();
+    }
+
+    /**
+     * 构造 S3 客户端的 ServiceConfiguration. 子类如需附加自有选项 (如 pathStyleAccessEnabled),
+     * 可重写后基于本方法返回值再行扩展.
+     */
+    public S3Configuration getS3Configuration() {
+        return S3Configuration.builder()
+                .chunkedEncodingEnabled(param.isChunkedEncodingEnabled())
                 .build();
     }
 
