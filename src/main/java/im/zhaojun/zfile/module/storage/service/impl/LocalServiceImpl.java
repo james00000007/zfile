@@ -286,36 +286,47 @@ public class LocalServiceImpl extends AbstractProxyTransferService<LocalParam> {
 
     /**
      * 检查路径合法性：
-     *  - 只有以 . 开头的允许通过，其他的如 ./ ../ 的都是非法获取上层文件夹内容的路径.
+     *  - 将路径按 / 和 \ 拆分为多个段, 任意一段为 ".." 即视为非法.
+     *  - 覆盖 "..", "/..", "..\\foo", "test/..", "foo/../bar" 等所有跨目录形态,
+     *    避免仅靠子串匹配遗漏路径末尾以 ".." 结尾的绕过.
      *
      * @param   paths
      *          文件路径
      *
-     * @throws IllegalArgumentException    文件路径包含非法字符时会抛出此异常
+     * @throws FilePathSecurityBizException    文件路径包含非法字符时会抛出此异常
      */
     private static void checkPathSecurity(String... paths) {
         for (String path : paths) {
-            // 路径中不能包含 .. 不然可能会获取到上层文件夹的内容
-            if (StringUtils.startWith(path, "/..") || StringUtils.containsAny(path, "../", "..\\")) {
-                throw new FilePathSecurityBizException(path);
+            if (path == null) {
+                continue;
+            }
+            String normalized = path.replace('\\', '/');
+            for (String segment : normalized.split("/")) {
+                if ("..".equals(segment)) {
+                    throw new FilePathSecurityBizException(path);
+                }
             }
         }
     }
 
 
     /**
-     * 检查路径合法性：
-     *  - 不为空，且不包含 \ / 字符
+     * 检查文件名合法性：
+     *  - 不包含 \ 或 / 字符, 避免名称里夹带子路径.
+     *  - 名称本身不能为 "." 或 "..", 否则拼接后会指向当前或父级目录.
      *
      * @param   names
-     *          文件路径
+     *          文件名
      *
-     * @throws IllegalArgumentException    文件名包含非法字符时会抛出此异常
+     * @throws FilePathSecurityBizException    文件名包含非法字符时会抛出此异常
      */
     private static void checkNameSecurity(String... names) {
         for (String name : names) {
-            // 路径中不能包含 .. 不然可能会获取到上层文件夹的内容
-            if (StringUtils.containsAny(name, "\\", StringUtils.SLASH)) {
+            if (name == null) {
+                continue;
+            }
+            if (StringUtils.containsAny(name, "\\", StringUtils.SLASH)
+                    || ".".equals(name) || "..".equals(name)) {
                 throw new FilePathSecurityBizException(name);
             }
         }
